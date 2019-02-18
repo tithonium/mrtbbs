@@ -1,0 +1,24 @@
+name: mrtbbs
+version: 0.1.0
+
+authors:
+  - Martin Tithonium <martian@midgard.org>
+
+targets:
+  mrtbbs:
+    main: src/main.cr
+
+crystal: 0.27.2
+
+license: MIT
+
+dependencies:
+  db:
+    github: crystal-lang/crystal-db
+  pg:
+    github: will/crystal-pg
+  jennifer:
+    github: imdrasil/jennifer.cr
+    version: "~> 0.7.1"
+  sam:
+    github: imdrasil/sam.cr

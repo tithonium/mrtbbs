@@ -1,0 +1,15 @@
+defaults : &defaults
+  host: localhost
+  adapter: postgres
+  user: martian
+  db: mrtbbs
+  # password: drowssap
+  migration_files_path: ./src/migrations
+
+development:
+  <<: *defaults
+  db: mrtbbs_development
+
+test:
+  <<: *defaults
+  db: mrtbbs_test
