@@ -4,6 +4,7 @@ defaults : &defaults
   user: martian
   db: mrtbbs
   # password: drowssap
+  model_files_path: ./src/models
   migration_files_path: ./src/migrations
 
 development:

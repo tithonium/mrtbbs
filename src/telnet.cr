@@ -22,21 +22,31 @@ class Telnet
   getter :sock
 
   def initialize(@socket : TCPSocket, @binmode = false, @telnetmode = true)
-    @binmode    = false
-    @telnetmod = true
+    @ansi          = false
+    @binmode       = false
+    @telnetmod     = true
     @telnet_option = { "SGA" => false, "BINARY" => false }
 
     @buffer = [] of UInt8
     @readchan = Channel::Buffered(UInt8).new(64)
     @cmdchan = Channel::Buffered(Telnet::Options::Base).new(5)
     
-    initialize!
     spawn process_incoming
     Fiber.yield
+    
+    initialize!
+  end
+
+  def ansi?
+    @ansi
+  end
+
+  def open?
+    !BBS.shutdown? && !@socket.closed? && !@readchan.closed? && !@cmdchan.closed?
   end
 
   def process_incoming
-    while !BBS.shutdown? && !@socket.closed? && !@readchan.closed? && !@cmdchan.closed?
+    while open?
       begin
         if byte_read = @socket.read_byte
           # STDERR.puts "< #{byte_read.inspect} | #{byte_read.unsafe_chr.inspect}"
@@ -112,6 +122,32 @@ class Telnet
   def initialize!
     self.send Telnet::Options::Dont.new(t_opt OPT_LINEMODE)
     # self.send Telnet::Options::Do.new(t_opt OPT_ECHO)
+    detect_ansi!
+  end
+
+  def detect_ansi!
+    set_character_mode!
+    disable_echo!
+    self.send_bytes(27_u8, 91_u8, 54_u8, 110_u8)
+    # STDERR.puts "Peeking..."
+    b = peek_byte
+    STDERR.puts "peeked: #{b.inspect}"
+    if b == 27
+      loop do
+        c = next_char
+        STDERR.puts "read: #{c.inspect}"
+        break if c == 'R'
+      end
+      @ansi = true
+      
+      # detect screen size:
+      # self.send_bytes(27_u8, 91_u8, 115_u8)
+      # self.send_bytes(27_u8, 91_u8, 57_u8, 57_u8, 57_u8, 57_u8, 59_u8, 57_u8, 57_u8, 57_u8, 57_u8, 72_u8)
+      # self.send_bytes(27_u8, 91_u8, 54_u8, 110_u8)
+      # self.send_bytes(27_u8, 91_u8, 117_u8)
+    end
+    enable_echo!
+    set_line_mode!
   end
 
   def set_line_mode!
@@ -133,21 +169,22 @@ class Telnet
   def process_commands!
     while !@cmdchan.empty?
       next_command = @cmdchan.receive
-      # STDERR.puts "Processing command #{next_command.inspect}"
+      STDERR.puts "Processing command #{next_command.inspect}"
       Fiber.yield
     end
   end
 
   def next_byte
     byte = nil
-    while byte.nil?
+    while open? && byte.nil?
+      Fiber.yield
       if @buffer.size > 0
         byte = @buffer.shift
       elsif !@readchan.empty?
         byte = @readchan.receive
       end
-      Fiber.yield
     end
+    byte ||= 0_u8
     return byte
   end
 
@@ -173,6 +210,12 @@ class Telnet
     end
   end
 
+  def peek_byte
+    c = next_byte
+    @buffer.unshift c
+    c
+  end
+
   def gets
     String.build do |s|
       loop do
@@ -193,7 +236,7 @@ class Telnet
   end
 
   def send(command : Telnet::Options::Base)
-    # STDERR.puts "Sending command #{command.inspect}"
+    STDERR.puts "Sending command #{command.inspect}"
     send_bytes(command.as_bytes)
     sleep 0.1
     Fiber.yield

@@ -33,38 +33,19 @@ Sam.namespace "db" do
     # Contact.create(name: "John", age: 18)
     
     Jennifer::Adapter.adapter.transaction do |tx|
-      main_menu = Menu.create(name: "Main Menu")
-      section = MenuSection.create(name: "Message Center", menu_id: main_menu.id)
-      # MenuEntry.create(menu_section_id: section.id, key: "N", name: "New Messages, All Subs", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "P", name: "Post a Message", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "S", name: "Scan Current Msg Base", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "#", name: "Enter NUmber of Sub", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "*", name: "List Subs Available", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "]", name: "Advance 1 Sub", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "[", name: "Retreat 1 Sub", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: ">", name: "Advance 1 Conference", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "<", name: "Retreat 1 Conference", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "H", name: "Hop to Another Sub", function: "")
+      user = User.create(username: "tithonium", name: "Martin Tithonium", password_digest: "$2a$11$ZNZsYJoYpzmEDG4qsu08luBAMimUrDcAVcPT1YbecYeD9xqAlvgYa", level: Int16::MAX)
       
-      section = MenuSection.create(name: "Miscellaneous", menu_id: main_menu.id)
-      MenuEntry.create(menu_section_id: section.id, key: "B", name: "BBS List", function: "bbs_list")
-      # MenuEntry.create(menu_section_id: section.id, key: "I", name: "System Information", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "L", name: "Last Caller List", function: "")
-      MenuEntry.create(menu_section_id: section.id, key: "O", name: "Log Off", function: "logout")
-      MenuEntry.create(menu_section_id: section.id, key: "U", name: "User List", function: "list_users")
-      # MenuEntry.create(menu_section_id: section.id, key: "V", name: "Voting Booth", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "Y", name: "Your Information", function: "")
+      board = MessageBoard.create(name: "General Discussion")
+      message = Message.create(subject: "Howdy", body: "Nothing to see here.\nPellentesque consectetur est et nunc ultrices imperdiet.\n\nDuis semper, ante viverra viverra fermentum, ipsum est ultricies odio, scelerisque fermentum nibh nibh et justo. Cras tristique felis porttitor mauris aliquet, vitae facili-sis dui-vene-natis. Nulla malesuada interdum elit condimentum vestibulum. Nullam pellentesque orci in nisl semper rutrum. Sed eleifend tellus leo, eget pretium justo lobortis nec. In posuere id neque et imperdiet. Etiam ut sollicitudin felis. Nullam ultricies pretium nisi, sit amet elementum velit imperdiet non. Praesent sit amet ex odio. Vivamus vitae accumsan ante, ultricies accumsan lectus. Nam-volutpat-convallis-fe-lis-lacinia-rutrum.", message_board_id: board.id, message_index: 1, author_id: user.id)
+      board.update(last_message_index: message.message_index)
+      MessageBoardSubscription.create(last_read_index: 0, message_board_id: board.id, user_id: user.id)
       
-      section = MenuSection.create(name: "System Features", menu_id: main_menu.id)
-      # MenuEntry.create(menu_section_id: section.id, key: "T", name: "Transfer Section", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "G", name: "Read General Files", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "M", name: "Message of the Day", function: "")
-      
-      section = MenuSection.create(name: "Sysop Functions", menu_id: main_menu.id)
-      # MenuEntry.create(menu_section_id: section.id, key: "X", name: "System Configuration", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "Z", name: "Info and Stats", function: "")
-      # MenuEntry.create(menu_section_id: section.id, key: "E", name: "User Editor", function: "")
-      MenuEntry.create(menu_section_id: section.id, key: "!", name: "Halt System", function: "shutdown")
+      board = MessageBoard.create(name: "For Sale")
+      message = Message.create(subject: "Stuff", body: "Stuff for sale.", message_board_id: board.id, message_index: 1, author_id: user.id)
+      message = Message.create(subject: "Things", body: "Things for sale.", message_board_id: board.id, message_index: 2, author_id: user.id)
+      board.update(last_message_index: message.message_index)
+      MessageBoardSubscription.create(last_read_index: 0, message_board_id: board.id, user_id: user.id)
+
     end
     
   end
