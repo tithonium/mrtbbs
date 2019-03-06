@@ -1,34 +1,34 @@
-module Menus
+module Views
   class MessageView < Base
     
-    getter message : ::Message
-    getter board : ::MessageBoard
-    def initialize(@message : ::Message)
-      @board = @message.message_board!
-      STDERR.puts @message.inspect
-      STDERR.puts @board.inspect
+    def message : ::Message
+      self.session.current_message.as(::Message)
+    end
+    
+    def board : ::MessageBoard
+      message.message_board!.as(::MessageBoard)
     end
     
     def entries
       [
-        heading("[#{board.name}]"),
-        text(""),
-        text(message.subject),
+        heading("Message #{message.message_index} of #{board.last_message_index} on #{board.name}"),
+        text("Subject: #{message.subject}"),
+        text("By: #{message.author}"),
         heading(""),
         text(message.body),
         text(""),
-        entry('!', "Halt System", "shutdown"),
-        entry('N', "Next Unread Message", "read_next_unread_message"),
+        hidden_entry('!', "Halt System", "shutdown"),
+        hidden_entry('N', "Next Unread Message", "read_next_unread_message"),
       ]
     end
-
-    def as_text(width = 79) : String
-      "oops"
+    
+    def as_text(width = 79, col_count = 2) : String
+      super(width, 1)
     end
-
-    def as_ansi(width = 100, col_count = nil) : String
+    
+    def as_ansi(width = 100, col_count = 3) : String
       String.build do |s|
-        left_col = 5
+        left_col = 5 + 1 + 5
         gutter = 2 + 3 + 2
         col_width = width - (left_col + gutter)
         main_width = width - 4
@@ -40,7 +40,7 @@ module Menus
         s << '\u2513' << Ansi.reset << "\n"
 
         s << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
-        s << "%5.5d" % self.message.message_index
+        s << "%5.5d/%-5.5d" % [message.message_index, board.last_message_index]
         s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' ' << Ansi.red_bg << Ansi.white_fg
         s << "%*s" % [-col_width, self.board.name] << Ansi.reset
         s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << "\n"

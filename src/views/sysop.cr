@@ -1,4 +1,4 @@
-module Menus
+module Views
   class Sysop < Base
     
     def entries : Array(Heading | Entry)

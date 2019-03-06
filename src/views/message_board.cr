@@ -1,9 +1,8 @@
-module Menus
+module Views
   class MessageBoard < Base
     
-    getter :board
-    def initialize(@board : ::MessageBoard)
-      STDERR.puts @board.inspect
+    def board : ::MessageBoard
+      self.session.current_board.as(::MessageBoard)
     end
     
     def entries

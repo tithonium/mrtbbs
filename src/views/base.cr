@@ -1,18 +1,27 @@
-module Menus
+module Views
   abstract class Base
     
+    getter session : ::Session
+    def initialize(@session : ::Session)
+      STDERR.puts @session.inspect
+    end
+
     record Heading, name : String
     macro heading(name)
       Heading.new(name: {{name}})
     end
     
-    record Entry, name : String, key : Char?, function : String
+    record Entry, name : String, key : Char?, function : String, hidden : Bool
     macro entry(key, name, function)
-      Entry.new(key: {{key}}, name: {{name}}, function: {{function}})
+      Entry.new(key: {{key}}, name: {{name}}, function: {{function}}, hidden: false)
+    end
+    
+    macro hidden_entry(key, name, function)
+      Entry.new(key: {{key}}, name: {{name}}, function: {{function}}, hidden: true)
     end
 
     macro text(name)
-      Entry.new(key: nil, name: {{name}}, function: "")
+      Entry.new(key: nil, name: {{name}}, function: "", hidden: false)
     end
     
     abstract def entries : Array(Heading | Entry)
@@ -21,7 +30,7 @@ module Menus
       result = [] of Array(Heading | Entry)
       self.entries.each do |row|
         result << [] of Heading | Entry if row.is_a?(Heading)
-        result[-1] << row
+        result[-1] << row unless row.is_a?(Entry) && row.hidden
       end
       result
     end
@@ -38,6 +47,10 @@ module Menus
       self.entries.each do |entry|
         return entry if entry.is_a?(Entry) && entry.key && entry.key == option
       end
+    end
+    
+    def execute_function(name : String) : Bool
+      false
     end
     
     private def text_mode_columns(col_count = 3) : Array(Array(Array(Heading | Entry)))
@@ -76,8 +89,8 @@ module Menus
       cols
     end
     
-    def as_text(width = 79) : String
-      cols = self.text_mode_columns(2)
+    def as_text(width = 79, col_count = 2) : String
+      cols = self.text_mode_columns(col_count)
       col_count = cols.size
       
       gutter_width = ((col_count - 1) * 2)
@@ -120,14 +133,14 @@ module Menus
           # s << '|' << ' '
 
           s << col0
-          s << " " * (col_width - col0.size)
+          s << " " * (col_width - col0.size) unless col_width < col0.size
 
           if cols.size > 1
             col1 = cols[1].size > idx ? cols[1][idx] : ""
             # s << ' ' << '|' << ' '
             s << "  "
             s << col1
-            s << " " * (col_width - col1.size)
+            s << " " * (col_width - col1.size) unless col_width < col1.size
           end
 
           if cols.size > 2
@@ -135,7 +148,7 @@ module Menus
             # s << ' ' << '|' << ' '
             s << "  "
             s << col2
-            s << " " * (col_width - col2.size)
+            s << " " * (col_width - col2.size) unless col_width < col2.size
           end
 
           # s << ' ' << '|'
@@ -151,8 +164,8 @@ module Menus
       end
     end
 
-    def as_ansi(width = 100) : String
-      cols = self.text_mode_columns(3)
+    def as_ansi(width = 100, col_count = 3) : String
+      cols = self.text_mode_columns(col_count)
       col_count = cols.size
       
       gutter_width = 4 + ((col_count - 1) * 3)
