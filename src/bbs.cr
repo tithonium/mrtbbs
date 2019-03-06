@@ -1,5 +1,5 @@
 require "./env"
-require "./menus"
+require "./views"
 require "./telnet_session"
 
 # TODO: Write documentation for BBS

@@ -9,11 +9,12 @@
 # https://github.com/MBoldyrev/telnet2uart/blob/36d90c688b260c68fc799dc9b4fd577e3afe1a6a/telnetd.c#L28
 # https://github.com/beardedfoo/faketelnetd/blob/bb47117ce1c0860ec05ac73dbb018e6915ce84ab/TelnetServerSocket.cpp#L233
 
-require "./telnet/options"
+require "./telnet/commands"
 
 class Telnet
 
-  IAC = Telnet::Options::IAC
+  IAC = 255_u8
+  ESC = 27_u8
 
   NULL = 0_u8
   CR   = 13_u8
@@ -21,20 +22,24 @@ class Telnet
 
   getter :sock
 
-  def initialize(@socket : TCPSocket, @binmode = false, @telnetmode = true)
-    @ansi          = false
-    @binmode       = false
-    @telnetmod     = true
-    @telnet_option = { "SGA" => false, "BINARY" => false }
+  alias Dimension = Tuple(Int32, Int32)
+  getter screen_size : Dimension?
+
+  def initialize(@socket : TCPSocket)
+    @ansi       = false
+    @to_binary  = false
+    @to_echo    = nil
+    @to_sga     = nil
+    @screen_size = nil
 
     @buffer = [] of UInt8
     @readchan = Channel::Buffered(UInt8).new(64)
-    @cmdchan = Channel::Buffered(Telnet::Options::Base).new(5)
+    @cmdchan = Channel::Buffered(Telnet::Command | Ansi::Command).new(5)
     
     spawn process_incoming
+    self.send Telnet::Command.dont.linemode
+    detect_ansi!
     Fiber.yield
-    
-    initialize!
   end
 
   def ansi?
@@ -44,18 +49,43 @@ class Telnet
   def open?
     !BBS.shutdown? && !@socket.closed? && !@readchan.closed? && !@cmdchan.closed?
   end
-
+  
+  def binary?
+    @to_binary
+  end
+  
+  def sga?
+    @to_sga
+  end
+  
+  def screen_width : Int32
+    if screen_size.nil?
+      100
+    else
+      screen_size.as(Dimension)[1]
+    end
+  end
+  
   def process_incoming
     while open?
       begin
         if byte_read = @socket.read_byte
           # STDERR.puts "< #{byte_read.inspect} | #{byte_read.unsafe_chr.inspect}"
           if byte_read == IAC
-            case parsed_option = Telnet::Options.parse(@socket)
-            when Telnet::Options::Base
-              @cmdchan.send parsed_option
+            case parsed_result = Telnet::Commands.parse(@socket)
+            when Telnet::Command
+              @cmdchan.send parsed_result
             when UInt8
-              @readchan.send parsed_option
+              @readchan.send parsed_result
+            end
+          elsif byte_read == ESC
+            case parsed_result = Ansi::Command.parse(@socket)
+            when Ansi::Command
+              STDERR.puts parsed_result.inspect
+              @cmdchan.send parsed_result
+            when UInt8
+              @readchan.send byte_read
+              @readchan.send parsed_result
             end
           else
             @readchan.send byte_read
@@ -66,41 +96,14 @@ class Telnet
     end
   end
 
-  # Set telnet command interpretation on (+mode+ == true) or off
-  # (+mode+ == false), or return the current value (+mode+ not
-  # provided).  It should be on for true telnet sessions, off if
-  # using Telnet to connect to a non-telnet service such
-  # as SMTP.
-  def telnetmode(mode = nil)
-    case mode
-    when nil
-      @telnetmod
-    when true, false
-      @telnetmod = mode
-    else
-      raise ArgumentError, "argument must be true or false, or missing"
-    end
-  end
-
-  # Turn telnet command interpretation on (true) or off (false).  It
-  # should be on for true telnet sessions, off if using Telnet
-  # to connect to a non-telnet service such as SMTP.
-  def telnetmode=(mode)
-    if (true == mode || false == mode)
-      @telnetmod = mode
-    else
-      raise ArgumentError, "argument must be true or false"
-    end
-  end
-
   # Turn newline conversion on (+mode+ == false) or off (+mode+ == true),
   # or return the current value (+mode+ is not specified).
   def binmode(mode = nil)
     case mode
     when nil
-      @binmode
+      @to_binary
     when true, false
-      @binmode = mode
+      @to_binary = mode
     else
       raise ArgumentError, "argument must be true or false"
     end
@@ -109,67 +112,96 @@ class Telnet
   # Turn newline conversion on (false) or off (true).
   def binmode=(mode)
     if (true == mode || false == mode)
-      @binmode = mode
+      @to_binary = mode
     else
       raise ArgumentError, "argument must be true or false"
     end
   end
 
-  macro t_opt(name)
-    Telnet::Options::{{name}}
-  end
-
-  def initialize!
-    self.send Telnet::Options::Dont.new(t_opt OPT_LINEMODE)
-    # self.send Telnet::Options::Do.new(t_opt OPT_ECHO)
-    detect_ansi!
-  end
-
   def detect_ansi!
     set_character_mode!
-    disable_echo!
-    self.send_bytes(27_u8, 91_u8, 54_u8, 110_u8)
-    # STDERR.puts "Peeking..."
-    b = peek_byte
-    STDERR.puts "peeked: #{b.inspect}"
-    if b == 27
-      loop do
-        c = next_char
-        STDERR.puts "read: #{c.inspect}"
-        break if c == 'R'
-      end
-      @ansi = true
-      
-      # detect screen size:
-      # self.send_bytes(27_u8, 91_u8, 115_u8)
-      # self.send_bytes(27_u8, 91_u8, 57_u8, 57_u8, 57_u8, 57_u8, 59_u8, 57_u8, 57_u8, 57_u8, 57_u8, 72_u8)
-      # self.send_bytes(27_u8, 91_u8, 54_u8, 110_u8)
-      # self.send_bytes(27_u8, 91_u8, 117_u8)
-    end
-    enable_echo!
+    disable_client_echo!
+    self.send(Ansi::Command.get_pos)
+    Fiber.yield
+    sleep 0.05
+    Fiber.yield
+    enable_client_echo!
     set_line_mode!
   end
 
   def set_line_mode!
-    self.send Telnet::Options::Wont.new(t_opt OPT_SGA)
+    return if @to_sga == false
+    @to_sga = nil
+    self.send Telnet::Command.wont.sga
   end
 
   def set_character_mode!
-    self.send Telnet::Options::Will.new(t_opt OPT_SGA)
+    return if @to_sga == true
+    @to_sga = nil
+    self.send Telnet::Command.will.sga
   end
 
-  def disable_echo!
-    self.send Telnet::Options::Will.new(t_opt OPT_ECHO)
+  def disable_client_echo!
+    return if @to_echo == true
+    @to_echo = nil
+    self.send Telnet::Command.will.echo
   end
   
-  def enable_echo!
-    self.send Telnet::Options::Wont.new(t_opt OPT_ECHO)
+  def enable_client_echo!
+    return if @to_echo == false
+    @to_echo = nil
+    self.send Telnet::Command.wont.echo
   end
 
   def process_commands!
     while !@cmdchan.empty?
       next_command = @cmdchan.receive
       STDERR.puts "Processing command #{next_command.inspect}"
+      case next_command
+      when Telnet::Request
+        next_command = next_command.as(Telnet::Request)
+        option = next_command.option.as(UInt8)
+        case next_command
+        when .do?
+          if next_command.sga? && @to_sga.nil?
+            @to_sga = true
+          elsif next_command.echo? && @to_echo.nil?
+            @to_echo = true
+          else
+            self.send(Telnet::Command.wont(option))
+          end
+        when .dont?
+          if next_command.sga? && @to_sga.nil?
+            @to_sga = false
+          elsif next_command.echo? && @to_echo.nil?
+            @to_echo = false
+          # else
+          #   self.send(Telnet::Command.wont(option))
+          end
+        when .will?
+          self.send(Telnet::Command.dont(option))
+        when .wont?
+        end
+      when Ansi::Command
+        STDERR.puts "it's an ansi command"
+        unless ansi?
+          STDERR.puts "we weren't in ansi mode"
+          @ansi = true
+          sleep 0.5
+          disable_client_echo!
+          original_position = Tuple(Int32, Int32).from(next_command.arguments) if next_command.cursor_position?
+          self.send(Ansi::Command.get_screensize)
+          self.send(Ansi::Command.set_pos(*original_position)) if original_position
+          enable_client_echo!
+        end
+        if @screen_size.nil? && next_command.cursor_position?
+          STDERR.puts "it's a position report!"
+          @screen_size = Tuple(Int32, Int32).from(next_command.arguments)
+          STDERR.puts "screen size is #{@screen_size.inspect}"
+        end
+      when .ayt?
+        self.puts("nobody here but us aliens")
+      end
       Fiber.yield
     end
   end
@@ -228,17 +260,25 @@ class Telnet
   
   def read_char
     set_character_mode!
-    disable_echo!
+    disable_client_echo!
     c = next_char
-    enable_echo!
+    enable_client_echo!
     set_line_mode!
     c
   end
 
-  def send(command : Telnet::Options::Base)
-    STDERR.puts "Sending command #{command.inspect}"
-    send_bytes(command.as_bytes)
-    sleep 0.1
+  def send(command : Telnet::Command)
+    STDERR.puts "Sending telnet command #{command.inspect}"
+    send_bytes(command.to_a)
+    sleep 0.01
+    Fiber.yield
+    process_commands!
+  end
+
+  def send(command : Ansi::Command)
+    STDERR.puts "Sending ansi command #{command.inspect}"
+    send_bytes(command.to_a)
+    sleep 0.01
     Fiber.yield
     process_commands!
   end
@@ -252,9 +292,9 @@ class Telnet
     flush
   end
 
-  def send_bytes(*bytes)
-     send_bytes(bytes.to_a)
-  end
+  # def send_bytes(*bytes)
+  #    send_bytes(bytes.to_a)
+  # end
 
   def flush
     @socket.flush
@@ -267,6 +307,10 @@ class Telnet
   def write(string : String)
     send_bytes(string.bytes)
   end
+  
+  def write(bytes : Array(UInt8))
+    send_bytes(bytes)
+  end
 
   # Sends a string to the host.
   #
@@ -275,22 +319,23 @@ class Telnet
   # depending upon the values of telnetmode, binmode, and telnet options
   # set by the host.
   def print(string)
-    string = string.gsub(/#{IAC}/, IAC + IAC) if @telnetmod
+    string = string.gsub(/#{IAC}/, IAC + IAC)
 
-    if @binmode
-      self.write(string)
+    string = if @to_binary
+      string
     else
-      if @telnet_option["BINARY"] && @telnet_option["SGA"]
+      if binary? && sga?
         # IAC WILL SGA IAC DO BIN send EOL --> CR
-        self.write(string.gsub(/\n/, "\r"))
-      elsif @telnet_option["SGA"]
+        string.gsub(/\n/, "\r")
+      elsif sga?
         # IAC WILL SGA send EOL --> CR+NULL
-        self.write(string.gsub(/\n/, "\r\0"))
+        string.gsub(/\n/, "\r\0")
       else
         # NONE send EOL --> CR+LF
-        self.write(string.gsub(/\n/, "\r\n"))
+        string.gsub(/\n/, "\r\n")
       end
     end
+    self.write(string)
   end
 
   # Sends a string to the host.

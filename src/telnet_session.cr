@@ -9,15 +9,12 @@ class TelnetSession < Session
   end
   
   getter client : Telnet
-  getter current_function : Symbol
-  getter current_board : MessageBoard?
-  getter current_message : Message?
   
   def initialize(@socket : TCPSocket)
     super()
-    @client = Telnet.new(socket: @socket)
-    @current_function = :main_menu
     puts "New TelnetSession connected to #{@socket.inspect}"
+    @client = Telnet.new(socket: @socket)
+    puts "New Telnet client initialized: #{@client.inspect}"
   end
   
   def inspect
@@ -36,7 +33,7 @@ class TelnetSession < Session
       end
       # client.print Ansi.clear
       if client.ansi?
-        client.puts current_menu.as_ansi
+        client.puts current_menu.as_ansi(@client.screen_width)
       else
         client.puts current_menu.as_text
       end
@@ -70,17 +67,18 @@ class TelnetSession < Session
     @current_menu ||= case self.current_function
     when :main_menu
       STDERR.puts "#{__FILE__}:#{__LINE__}"
-      Menus::Root.new
+      Views::Root.new(self)
     when :sysop
       STDERR.puts "#{__FILE__}:#{__LINE__}"
-      Menus::Sysop.new
+      Views::Sysop.new(self)
     when :board
       STDERR.puts "#{__FILE__}:#{__LINE__}"
       raise "Oops" if self.current_board.nil?
-      Menus::MessageBoard.new(self.current_board.as(MessageBoard))
+      Views::MessageBoard.new(self)
     when :read_message
+      STDERR.puts "#{__FILE__}:#{__LINE__}"
       raise "Oops" if self.current_message.nil?
-      Menus::MessageView.new(self.current_message.as(Message))
+      Views::MessageView.new(self)
     else
       STDERR.puts "#{__FILE__}:#{__LINE__}"
       raise "Oops"
@@ -89,6 +87,7 @@ class TelnetSession < Session
   
   
   def execute_function(name : String)
+    return if current_menu.execute_function(name)
     case name
     when "list_users"
       list_users
