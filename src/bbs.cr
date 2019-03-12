@@ -20,8 +20,10 @@ class BBSClass
     ["* I don't know of any BBSes, sorry."]
   end
 
-  def messages_list_boards
-    MessageBoard.available(nil).to_a.map do |board|
+  def messages_list_boards(user)
+    board_ids = MessageBoard.available(user && user.level).pluck(:id)
+    board_ids |= user.message_board_subscriptions.map(&.message_board_id).compact if user
+    MessageBoard.where { _id.in(board_ids) }.to_a.map do |board|
       "* #{board.id} - #{board.name}"
     end
   end

@@ -6,11 +6,19 @@ class MessageBoard < Jennifer::Model::Base
     name: String,
     last_message_index: { type: Int32, default: 0 },
     public: { type: Bool, default: true },
+    required_level: { type: Int16?, default: nil },
     created_at: Time?,
     updated_at: Time?,
   )
 
-  scope :available { |user| where { _public == true } }
+  scope :available do |level|
+    if level.is_a?(Int16)
+      where { ( _public == true ) & g( _required_level.is(nil) | (_required_level <= level) ) }
+    else
+      where { _public == true }
+    end
+  end
+    
 
   has_many :messages, Message
   has_many :message_board_subscriptions, MessageBoardSubscription

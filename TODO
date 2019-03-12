@@ -1,6 +1,0 @@
-* https://www.tecmint.com/best-linux-terminal-console-games/
-* https://www.maketecheasier.com/set-up-legend-of-the-green-dragon-server/
-
-* Make the Telnet::Options stuff composable with methods
-* Make the ANSI stuff work the same way
-* Handle ANSI from the client the same way we do telnet commands.

@@ -184,7 +184,7 @@ class TelnetSession < Session
     client.puts "========"
     client.puts "Board List"
     client.puts "========"
-    BBS.messages_list_boards.each do |board|
+    BBS.messages_list_boards(current_user).each do |board|
       client.puts board
     end
     client.puts

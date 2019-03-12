@@ -12,6 +12,15 @@ class User < Jennifer::Model::Base
     created_at: Time?,
     updated_at: Time?,
   )
+
+  module Levels
+    Disabled = 0_i16
+    Standard = 100_i16
+    Elevated = 20000_i16
+    Admin    = 30000_i16
+    Super    = Int16::MAX
+  end
+  
   
   has_many :message_board_subscriptions, MessageBoardSubscription
   

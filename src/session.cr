@@ -10,6 +10,14 @@ class Session
     @user = User.find!(1)
     @current_function = :main_menu
   end
+
+  def current_user
+    user.as(User)
+  end
+  
+  def current_user?
+    !!@user
+  end
   
   def shutdown
     # check permissions first

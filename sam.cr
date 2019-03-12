@@ -33,7 +33,8 @@ Sam.namespace "db" do
     # Contact.create(name: "John", age: 18)
     
     Jennifer::Adapter.adapter.transaction do |tx|
-      user = User.create(username: "tithonium", name: "Martin Tithonium", password_digest: "$2a$11$ZNZsYJoYpzmEDG4qsu08luBAMimUrDcAVcPT1YbecYeD9xqAlvgYa", level: Int16::MAX)
+      user = User.create(username: "tithonium", name: "Martin Tithonium", password_digest: "$2a$11$ZNZsYJoYpzmEDG4qsu08luBAMimUrDcAVcPT1YbecYeD9xqAlvgYa", level: User::Levels::Super)
+      User.create(username: "martian", name: "Martin Tithonium", password_digest: "$2a$11$ZNZsYJoYpzmEDG4qsu08luBAMimUrDcAVcPT1YbecYeD9xqAlvgYa", level: User::Levels::Standard)
       
       board = MessageBoard.create(name: "General Discussion")
       message = Message.create(subject: "Howdy", body: "Nothing to see here.\nPellentesque consectetur est et nunc ultrices imperdiet.\n\nDuis semper, ante viverra viverra fermentum, ipsum est ultricies odio, scelerisque fermentum nibh nibh et justo. Cras tristique felis porttitor mauris aliquet, vitae facili-sis dui-vene-natis. Nulla malesuada interdum elit condimentum vestibulum. Nullam pellentesque orci in nisl semper rutrum. Sed eleifend tellus leo, eget pretium justo lobortis nec. In posuere id neque et imperdiet. Etiam ut sollicitudin felis. Nullam ultricies pretium nisi, sit amet elementum velit imperdiet non. Praesent sit amet ex odio. Vivamus vitae accumsan ante, ultricies accumsan lectus. Nam-volutpat-convallis-fe-lis-lacinia-rutrum.", message_board_id: board.id, message_index: 1, author_id: user.id)
@@ -43,6 +44,16 @@ Sam.namespace "db" do
       board = MessageBoard.create(name: "For Sale")
       message = Message.create(subject: "Stuff", body: "Stuff for sale.", message_board_id: board.id, message_index: 1, author_id: user.id)
       message = Message.create(subject: "Things", body: "Things for sale.", message_board_id: board.id, message_index: 2, author_id: user.id)
+      board.update(last_message_index: message.message_index)
+      MessageBoardSubscription.create(last_read_index: 0, message_board_id: board.id, user_id: user.id)
+      
+      board = MessageBoard.create(name: "Administrivia", required_level: 30000_i16)
+      message = Message.create(subject: "Yo", body: "Don't make me regret this.", message_board_id: board.id, message_index: 1, author_id: user.id)
+      board.update(last_message_index: message.message_index)
+      MessageBoardSubscription.create(last_read_index: 0, message_board_id: board.id, user_id: user.id)
+
+      board = MessageBoard.create(name: "Sekrits", public: false)
+      message = Message.create(subject: "Sshhhh", body: "Don't tell nobody.", message_board_id: board.id, message_index: 1, author_id: user.id)
       board.update(last_message_index: message.message_index)
       MessageBoardSubscription.create(last_read_index: 0, message_board_id: board.id, user_id: user.id)
 
