@@ -1,5 +1,6 @@
 require "sam"
 require "./env"
+require "crypto/bcrypt/password"
 
 load_dependencies "jennifer"
 
@@ -33,8 +34,9 @@ Sam.namespace "db" do
     # Contact.create(name: "John", age: 18)
     
     Jennifer::Adapter.adapter.transaction do |tx|
-      user = User.create(username: "tithonium", name: "Martin Tithonium", password_digest: "$2a$11$ZNZsYJoYpzmEDG4qsu08luBAMimUrDcAVcPT1YbecYeD9xqAlvgYa", level: User::Levels::Super)
-      User.create(username: "martian", name: "Martin Tithonium", password_digest: "$2a$11$ZNZsYJoYpzmEDG4qsu08luBAMimUrDcAVcPT1YbecYeD9xqAlvgYa", level: User::Levels::Standard)
+      user = User.create(username: "tithonium", name: "Martin Tithonium", level: User::Levels::Super,    password_digest: Crypto::Bcrypt::Password.create("drowssap", cost: 10).to_s)
+             User.create(username: "admin",     name: "Generic Admin",    level: User::Levels::Admin,    password_digest: Crypto::Bcrypt::Password.create("drowssap", cost: 10).to_s)
+             User.create(username: "martian",   name: "Martin Tithonium", level: User::Levels::Standard, password_digest: Crypto::Bcrypt::Password.create("drowssap", cost: 10).to_s)
       
       board = MessageBoard.create(name: "General Discussion")
       message = Message.create(subject: "Howdy", body: "Nothing to see here.\nPellentesque consectetur est et nunc ultrices imperdiet.\n\nDuis semper, ante viverra viverra fermentum, ipsum est ultricies odio, scelerisque fermentum nibh nibh et justo. Cras tristique felis porttitor mauris aliquet, vitae facili-sis dui-vene-natis. Nulla malesuada interdum elit condimentum vestibulum. Nullam pellentesque orci in nisl semper rutrum. Sed eleifend tellus leo, eget pretium justo lobortis nec. In posuere id neque et imperdiet. Etiam ut sollicitudin felis. Nullam ultricies pretium nisi, sit amet elementum velit imperdiet non. Praesent sit amet ex odio. Vivamus vitae accumsan ante, ultricies accumsan lectus. Nam-volutpat-convallis-fe-lis-lacinia-rutrum.", message_board_id: board.id, message_index: 1, author_id: user.id)
@@ -57,6 +59,28 @@ Sam.namespace "db" do
       board.update(last_message_index: message.message_index)
       MessageBoardSubscription.create(last_read_index: 0, message_board_id: board.id, user_id: user.id)
 
+      MessageBoard.create(name: "Junk1", public: true)
+      MessageBoard.create(name: "Junk2", public: true)
+      MessageBoard.create(name: "Junk3", public: true)
+      MessageBoard.create(name: "Junk4", public: true)
+      MessageBoard.create(name: "Junk5", public: true)
+      MessageBoard.create(name: "Junk6", public: true)
+      MessageBoard.create(name: "Junk7", public: true)
+      MessageBoard.create(name: "Junk8", public: true)
+      MessageBoard.create(name: "Junk9", public: true)
+      MessageBoard.create(name: "Junk10", public: true)
+      MessageBoard.create(name: "Junk11", public: true)
+      MessageBoard.create(name: "Junk12", public: true)
+      MessageBoard.create(name: "Junk13", public: true)
+      MessageBoard.create(name: "Junk14", public: true)
+      MessageBoard.create(name: "Junk15", public: true)
+      MessageBoard.create(name: "Junk16", public: true)
+      MessageBoard.create(name: "Junk17", public: true)
+      MessageBoard.create(name: "Junk18", public: true)
+      MessageBoard.create(name: "Junk19", public: true)
+      MessageBoard.create(name: "Junk20", public: true)
+      MessageBoard.create(name: "Junk21", public: true)
+      MessageBoard.create(name: "Junk22", public: true)
     end
     
   end

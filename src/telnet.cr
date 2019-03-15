@@ -258,13 +258,30 @@ class Telnet
     end
   end
   
-  def read_char
+  def read_char : Char
     set_character_mode!
     disable_client_echo!
     c = next_char
     enable_client_echo!
     set_line_mode!
     c
+  end
+
+  def read_char(options : Array(Char), ignore_case = true) : Char?
+    options = options.map(&.upcase) if ignore_case
+    loop do
+      option = read_char
+      if BBS.shutdown?
+        puts "System is shutting down."
+        break
+      end
+      option = option.upcase if ignore_case
+      return option if options.includes?(option)
+    end
+  end
+
+  def read_char(options : String, ignore_case = true)
+    read_char(options.chars, ignore_case)
   end
 
   def send(command : Telnet::Command)

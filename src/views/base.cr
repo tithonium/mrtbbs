@@ -1,11 +1,6 @@
 module Views
   abstract class Base
     
-    getter session : ::Session
-    def initialize(@session : ::Session)
-      STDERR.puts @session.inspect
-    end
-
     record Heading, name : String
     macro heading(name)
       Heading.new(name: {{name}})
@@ -20,22 +15,40 @@ module Views
       Entry.new(key: {{key}}, name: {{name}}, function: {{function}}, hidden: true)
     end
 
+    record Text, name : String
     macro text(name)
-      Entry.new(key: nil, name: {{name}}, function: "", hidden: false)
+      Text.new(name: {{name}})
     end
     
-    abstract def entries : Array(Heading | Entry)
+    alias Row = Heading | Entry | Text
     
-    def sections : Array(Array(Heading | Entry))
-      result = [] of Array(Heading | Entry)
+    @items : Array(Row)
+    getter session : ::Session
+    def initialize(@session : ::Session)
+      @items = [] of Row
+    end
+
+    abstract def entries : Array(Row)
+    
+    def keys : Array(Char)
+      entries.map {|row| row.key if row.is_a?(Entry) }.compact
+    end
+    
+    def current_level
+      session.current_user.level
+    end
+    
+    def sections : Array(Array(Row))
+      result = [] of Array(Row)
       self.entries.each do |row|
-        result << [] of Heading | Entry if row.is_a?(Heading)
+        result << [] of Row if row.is_a?(Heading)
         result[-1] << row unless row.is_a?(Entry) && row.hidden
       end
       result
     end
     
-    def match_key(option : Char) : Entry?
+    def match_key(option : Char?) : Entry?
+      return nil if option.nil?
       self.entries.each do |entry|
         return entry if entry.is_a?(Entry) && entry.key && entry.key == option
       end
@@ -53,16 +66,16 @@ module Views
       false
     end
     
-    private def text_mode_columns(col_count = 3) : Array(Array(Array(Heading | Entry)))
+    private def text_mode_columns(col_count = 3) : Array(Array(Array(Row)))
       menu_sections = self.sections
       
       if menu_sections.size <= col_count
         return menu_sections.map{|e| [e] }
       end
       
-      cols = [] of Array(Array(Heading | Entry))
+      cols = [] of Array(Array(Row))
       col_count.times {
-        cols << [] of Array(Heading | Entry)
+        cols << [] of Array(Row)
       }
 
       total_length = menu_sections.map(&.size).sum
@@ -107,7 +120,11 @@ module Views
               right_padding = padding - left_padding
               rows << "#{"=" * (left_padding - 1)} #{row.name} #{"=" * (right_padding - 1)}"
             when Entry
-              rows << "#{row.key} : #{row.name}"
+              if row.key
+                rows << "#{row.key} : #{row.name}"
+              else
+                rows << "    #{row.name}"
+              end
             end
           end
           rows << ""

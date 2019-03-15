@@ -25,17 +25,25 @@ class User < Jennifer::Model::Base
   has_many :message_board_subscriptions, MessageBoardSubscription
   
   def self.authenticate(username, password) : self?
-    user = self.where(username: username).first
+    user = self.where { _username == username }.first
     return nil if user.nil?
     return user if Crypto::Bcrypt::Password.new(user.password_digest) == password
     nil
   end
 
-  def next_unread_message : Message?
-    self.message_board_subscriptions_query.order(message_board_id: :asc).each do |sub|
-      board = sub.message_board.as(MessageBoard)
-      if message = board.next_since(sub.last_read_index)
-        return message
+  def next_unread_message(board : MessageBoard?) : Message?
+    if board
+      if sub = self.message_board_subscriptions_query.where { _message_board_id == board.id }.first
+        if message = board.next_since(sub.last_read_index)
+          return message
+        end
+      end
+    else
+      self.message_board_subscriptions_query.order(message_board_id: :asc).each do |sub|
+        board = sub.message_board.as(MessageBoard)
+        if message = board.next_since(sub.last_read_index)
+          return message
+        end
       end
     end
     nil

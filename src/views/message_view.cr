@@ -10,16 +10,20 @@ module Views
     end
     
     def entries
-      [
-        heading("Message #{message.message_index} of #{board.last_message_index} on #{board.name}"),
-        text("Subject: #{message.subject}"),
-        text("By: #{message.author}"),
-        heading(""),
-        text(message.body),
-        text(""),
-        hidden_entry('!', "Halt System", "shutdown"),
-        hidden_entry('N', "Next Unread Message", "read_next_unread_message"),
-      ]
+      if @items.size > 0
+        @items
+      else
+        @items = [
+          heading("Message #{message.message_index} of #{board.last_message_index} on #{board.name}"),
+          text("Subject: #{message.subject}"),
+          text("By: #{message.author}"),
+          heading(""),
+          text(message.body),
+          text(""),
+          hidden_entry('!', "Halt System", "shutdown"),
+          hidden_entry('N', "Next Unread Message", "read_next_unread_message"),
+        ]
+      end
     end
     
     def as_text(width = 79, col_count = 2) : String
@@ -64,7 +68,6 @@ module Views
         s << '\u252B' << Ansi.reset << "\n"
 
         re = /(.{1,#{main_width-1}}\S)(?=\s)/
-        STDERR.puts re.inspect
         self.message.body.split(/\n/).each do |line|
           if line.size > main_width
             pos = 0

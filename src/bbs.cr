@@ -1,6 +1,6 @@
 require "./env"
 require "./views"
-require "./telnet_session"
+require "./session"
 
 # TODO: Write documentation for BBS
 class BBSClass
@@ -20,12 +20,10 @@ class BBSClass
     ["* I don't know of any BBSes, sorry."]
   end
 
-  def messages_list_boards(user)
+  def messages_list_boards(user) : Array(MessageBoard)
     board_ids = MessageBoard.available(user && user.level).pluck(:id)
     board_ids |= user.message_board_subscriptions.map(&.message_board_id).compact if user
-    MessageBoard.where { _id.in(board_ids) }.to_a.map do |board|
-      "* #{board.id} - #{board.name}"
-    end
+    MessageBoard.where { _id.in(board_ids) }.to_a
   end
 
   def shutdown!
@@ -47,7 +45,7 @@ class BBSClass
   def accept_telnet_clients
     while !shutdown? && (client_socket = @telnet_server.accept?)
       puts "Accepted telnet client #{client_socket.inspect}"
-      @sessions << (session = TelnetSession.new(client_socket))
+      @sessions << (session = Session.new(client_socket))
       spawn do
         session.handle
         @sessions.delete session
