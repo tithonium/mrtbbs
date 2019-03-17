@@ -24,6 +24,10 @@ class Session
     "Session(user=#{@user.inspect} f=#{@current_function.inspect}, b=#{@current_board.inspect})"
   end
   
+  def use_ansi?
+    @client.ansi? && @client.screen_width >= 80
+  end
+  
   def handle
     client.set_line_mode!
     
@@ -34,10 +38,10 @@ class Session
     loop do
       break if shutdown?
       # client.print Ansi.clear
-      if client.ansi?
+      if use_ansi?
         client.puts current_menu.as_ansi(@client.screen_width)
       else
-        client.puts current_menu.as_text
+        client.puts current_menu.as_text(@client.screen_width)
       end
       client.print "> "
       option = client.read_char(current_menu.keys)

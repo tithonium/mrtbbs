@@ -103,6 +103,7 @@ module Views
     end
     
     def as_text(width = 79, col_count = 2) : String
+      col_count = 1 if width < 50
       cols = self.text_mode_columns(col_count)
       col_count = cols.size
       
@@ -181,7 +182,8 @@ module Views
       end
     end
 
-    def as_ansi(width = 100, col_count = 3) : String
+    def as_ansi(width = 79, col_count = 3) : String
+      col_count = 1 if width < 50
       cols = self.text_mode_columns(col_count)
       col_count = cols.size
       

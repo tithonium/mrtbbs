@@ -43,7 +43,7 @@ class Telnet
   end
 
   def ansi?
-    @ansi
+    @ansi\
   end
 
   def open?
@@ -60,7 +60,7 @@ class Telnet
   
   def screen_width : Int32
     if screen_size.nil?
-      100
+      79
     else
       screen_size.as(Dimension)[1]
     end

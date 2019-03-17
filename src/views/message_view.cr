@@ -100,10 +100,87 @@ module Views
         #   s << "\u2501" * (col_width + 2)
         # end
         # s << '\u251B' << Ansi.reset << "\n"
-
-        s << Ansi.grey_fg << '\u2517'
-        s << "\u2501" * (width - 2)
-        s << '\u251B' << Ansi.reset << "\n"
+        
+        
+        if width < 86
+          s << Ansi.grey_fg << '\u2523'
+          s << "\u2501" * 8  << '\u2533'
+          s << "\u2501" * 17 << '\u2533'
+          s << "\u2501" * 15 << '\u2533'
+          s << "\u2501" * 10 << '\u2533'
+          s << "\u2501" * (width - 56) if width > 56
+          s << '\u252B' << Ansi.reset << "\n"
+          
+          s << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << Ansi.dblue_bg << Ansi.white_fg << "Board:" << Ansi.reset
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}P#{Ansi.red_fg} : #{Ansi.white_fg}Prev Msg#{Ansi.reset}   "
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}N#{Ansi.red_fg} : #{Ansi.white_fg}Next Msg#{Ansi.reset} "
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}L#{Ansi.red_fg} : #{Ansi.white_fg}List#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset
+          s << (" " * (width - 56)) << Ansi.grey_fg << '\u2503' << Ansi.reset if width > 56
+          s << "\n"
+          s << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << Ansi.dblue_bg << Ansi.white_fg << "Other:" << Ansi.reset
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}U#{Ansi.red_fg} : #{Ansi.white_fg}Next Unread#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}M#{Ansi.red_fg} : #{Ansi.white_fg}Main Menu#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << "          " << Ansi.grey_fg << '\u2503' << Ansi.reset
+          s << (" " * (width - 56)) << Ansi.grey_fg << '\u2503' << Ansi.reset if width > 56
+          s << "\n"
+          
+          s << Ansi.grey_fg << '\u2517'
+          s << "\u2501" * 8  << '\u253B'
+          s << "\u2501" * 17 << '\u253B'
+          s << "\u2501" * 15 << '\u253B'
+          s << "\u2501" * 10 << '\u253B'
+          s << "\u2501" * (width - 56) if width > 56
+          s << '\u251B' << Ansi.reset << "\n"
+        else
+          s << Ansi.grey_fg << '\u2523'
+          s << "\u2501" * 8  << '\u2533'
+          s << "\u2501" * 10 << '\u2533'
+          s << "\u2501" * 10 << '\u2533'
+          s << "\u2501" * 10 << '\u2533'
+          s << "\u2501" * (width - 87) << '\u2533' if width > 87
+          s << "\u2501" * 8  << '\u2533'
+          s << "\u2501" * 17 << '\u2533'
+          s << "\u2501" * 15
+          s << '\u252B' << Ansi.reset << "\n"
+          
+          s << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << Ansi.dblue_bg << Ansi.white_fg << "Board:" << Ansi.reset
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}P#{Ansi.red_fg} : #{Ansi.white_fg}Prev#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}N#{Ansi.red_fg} : #{Ansi.white_fg}Next#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}L#{Ansi.red_fg} : #{Ansi.white_fg}List#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset
+          s << (" " * (width - 87)) << Ansi.grey_fg << '\u2503' << Ansi.reset << ' ' if width > 87
+          s << Ansi.dblue_bg << Ansi.white_fg << "Other:" << Ansi.reset
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}U#{Ansi.red_fg} : #{Ansi.white_fg}Next Unread#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset << ' '
+          s << "#{Ansi.blue_fg}M#{Ansi.red_fg} : #{Ansi.white_fg}Main Menu#{Ansi.reset}"
+          s << ' ' << Ansi.grey_fg << '\u2503' << Ansi.reset
+          s << "\n"
+          
+          s << Ansi.grey_fg << '\u2517'
+          s << "\u2501" * 8  << '\u253B'
+          s << "\u2501" * 10 << '\u253B'
+          s << "\u2501" * 10 << '\u253B'
+          s << "\u2501" * 10 << '\u253B'
+          s << "\u2501" * (width - 87) << '\u253B' if width > 87
+          s << "\u2501" * 8  << '\u253B'
+          s << "\u2501" * 17 << '\u251B'
+          s << "\u2501" * 15
+          s << '\u251B' << Ansi.reset << "\n"
+        end
+        
       end
     end
     
